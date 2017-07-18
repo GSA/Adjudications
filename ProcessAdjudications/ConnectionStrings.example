@@ -1,0 +1,3 @@
+<connectionStrings>
+	<add name="GCIMS" connectionString="server=server; port=port; user id=user; password=pw;persist security info=True;database=db; pooling=true;" />
+</connectionStrings>
