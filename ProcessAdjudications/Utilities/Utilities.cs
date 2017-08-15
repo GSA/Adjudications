@@ -31,7 +31,7 @@ namespace Adjudications.Utilities
         }
 
         public string GenerateDecryptedFilename(string encryptedFilename)
-        {   
+        {
             return string.Concat(encryptedFilename, "-d.csv");
         }
 
