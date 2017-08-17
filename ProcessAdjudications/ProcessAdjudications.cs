@@ -58,7 +58,7 @@ namespace Adjudications
         /// </summary>
         /// <param name="adjudicationFile">File Name</param>
         /// 
-        ///Add IsNullOrEmpty to the quries for all the other columsnt hat are not associated with that method.        
+        ///Add IsNullOrEmpty to the queries for all the other columns that are not associated with that method.        
         public Tuple<int, string> ProcessAdjudicationFile(string adjudicationFile)
         {
             try
@@ -200,7 +200,7 @@ namespace Adjudications
         }
 
         /// <summary>
-        /// Loads the adjudiction information
+        /// Loads the adjudication information
         /// </summary>
         /// <typeparam name="TClass"></typeparam>
         /// <typeparam name="TMap"></typeparam>
@@ -224,24 +224,11 @@ namespace Adjudications
 
                     return allRecords;
                 }
-            }
-            //CsvParser csvParser = new CsvParser(new StreamReader(filePath), config);
-            //CsvReader csvReader = new CsvReader(csvParser);
-
-            //csvReader.Configuration.RegisterClassMap<TMap>();
-
-            //List<TClass> allRecords = csvReader.GetRecords<TClass>().ToList();
-
-            //columnCount = csvReader.FieldHeaders.Count();
-
-            //csvReader.Dispose();
-            //csvParser.Dispose();
-
-            //return allRecords; //csvReader.GetRecords<TClass>().ToList();
+            }            
         }
 
         /// <summary>
-        /// Checks wether or not the file can be processed
+        /// Checks weather or not the file can be processed
         /// </summary>
         /// <param name="fileColumnCount"></param>
         /// <param name="allAdjudications"></param>
@@ -285,7 +272,7 @@ namespace Adjudications
             return true;
         }
         /// <summary>
-        /// Processes each individual adjudiction and saves to the DB
+        /// Processes each individual adjudication and saves to the DB
         /// </summary>
         /// <param name="adjudications"></param>
         private void ProcessAdjudicationList(List<AdjudicationData> adjudications)
@@ -296,7 +283,7 @@ namespace Adjudications
             //Item 1 = ID, Item 2 = Status, Item 3 = Send E-Mail
             Tuple<int, string, bool> result = new Tuple<int, string, bool>(0, string.Empty, false);
 
-            //log.Info("Start: Looping Adjdications List");
+            //log.Info("Start: Looping Adjudications List");
 
             foreach (AdjudicationData adjudicationData in adjudications)
             {
@@ -497,7 +484,7 @@ namespace Adjudications
         }
 
         /// <summary>
-        /// Gets a list of case disontinued.  No need to process these
+        /// Gets a list of case discontinued.  No need to process these
         /// </summary>
         /// <param name="adjudications"></param>
         /// <returns></returns>
