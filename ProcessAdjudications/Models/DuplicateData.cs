@@ -1,4 +1,4 @@
-﻿//Not sure if this will be used
+﻿//Not sure if this will be used - needs removed if not used
 //Might be used to display duplicates in the summary e-mail if found
 //namespace Adjudications.Models
 //{

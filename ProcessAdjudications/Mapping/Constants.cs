@@ -122,7 +122,7 @@ namespace Adjudications.Mapping
     }
 
     /// <summary>
-    /// Constants used to set the processed statuses that are not able to be returned from the stored procedure. 
+    /// Constants used to set the processed statuses that are not able to be returned from the stored procedure.
     /// </summary>
     class ProcessedStatusConstants
     {
@@ -131,6 +131,6 @@ namespace Adjudications.Mapping
         public const string INDETERMINABLE = "Indeterminable";
         public const string RESCINDED = "Rescinded";
         public const string NOACTION = "No Action";
-        public const string PORT_OF_ENTRY = "< 3 Year Error"; 
+        public const string PORT_OF_ENTRY = "< 3 Year Error";
     }
 }

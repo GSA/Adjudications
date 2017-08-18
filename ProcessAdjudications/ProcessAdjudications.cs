@@ -11,28 +11,35 @@ using System.Threading;
 
 namespace Adjudications
 {
+    /// <summary>
+    ///
+    /// </summary>
     public class ProcessAdjudications
     {
-        private static CsvConfiguration config; // = new CsvConfiguration();
-        private static int defaultColumnCount = 36; //Should be a constant?
-        private static List<Investigation> investigations; //= new List<Investigation>();
-        private static bool isDebug; // = true;
-        private static List<AdjudicationData> processed; //= new List<AdjudicationData>();
-        //Need better naming namespace and convention here
+        //Class variables
+        private static CsvConfiguration config;
+        private static int defaultColumnCount = 36;
+        private static List<Investigation> investigations;
+        private static bool isDebug;
+        private static List<AdjudicationData> processed;
         private static Utilities.Utilities u = new Utilities.Utilities();
 
+        //Reference to logger
         private readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
         /// <summary>
-        /// Initializes the process to process the adjudication files
+        /// Initializes the processing of adjudication files
         /// </summary>
-        public ProcessAdjudications(bool debugMode) //bool debugMode//, log4net.ILog appLog)
+        public ProcessAdjudications(bool debugMode)
         {
+            //Define function variables
             config = new CsvConfiguration();
             investigations = new List<Investigation>();
             processed = new List<AdjudicationData>();
 
             int investColumnCount = 0;
 
+            //CSV settings
             config.Delimiter = ",";
             config.HasHeaderRecord = true;
             config.WillThrowOnMissingField = true;
@@ -45,6 +52,7 @@ namespace Adjudications
             //Loads the investigation data (lookup)
             investigations = GetFileData<Investigation, InvestigationMapping>(AppDomain.CurrentDomain.BaseDirectory + "Lookups\\Investigations.csv", config, out investColumnCount);
 
+            //If not int, log error and throw invalid cast exception
             if (!int.TryParse(ConfigurationManager.AppSettings["COLUMNCOUNT"].ToString(), out defaultColumnCount))
             {
                 log.Error("Unable to convert column count size to integer");
@@ -57,14 +65,15 @@ namespace Adjudications
         /// Reads the adjudication file information and starts processing the information
         /// </summary>
         /// <param name="adjudicationFile">File Name</param>
-        /// 
-        ///Add IsNullOrEmpty to the queries for all the other columns that are not associated with that method.        
+        ///Add IsNullOrEmpty to the queries for all the other columns that are not associated with that method.
         public Tuple<int, string> ProcessAdjudicationFile(string adjudicationFile)
         {
             try
             {
+                //Log start of function
                 log.Info("Processing Adjudication File: " + adjudicationFile);
 
+                //Define function variables
                 int fileColumnCount = 0;
                 string errors = string.Empty;
                 int totalProcessed = 0;
@@ -74,6 +83,7 @@ namespace Adjudications
                 //Gets all the data
                 adjudicationList = GetFileData<Adjudication, AdjudicationMapping>(adjudicationFile, config, out fileColumnCount);
 
+                //Store total
                 totalProcessed = adjudicationList.Count;
 
                 //Check the entire file for 3 year issues and then remove them before proceeding.
@@ -110,12 +120,15 @@ namespace Adjudications
                     //SendSummary(adjudicationList, adjudicationFile);
                 }
 
+                //Log completion of function
                 log.Info("Done Processing Adjudication File: " + adjudicationFile);
 
                 return new Tuple<int, string>(totalProcessed, errors);
             }
+            //Catch all errors, log exception and return 0,""
+            //Then clear processed
             catch (Exception ex)
-            {   
+            {
                 log.Error(ex.Message + " - " + ex.InnerException);
                 return new Tuple<int, string>(0, "");
             }
@@ -123,7 +136,7 @@ namespace Adjudications
             {
                 processed.Clear();
             }
-        }        
+        }
 
         /// <summary>
         /// Remove Found records from main list after processing.  Processing will capture any errors.
@@ -132,13 +145,20 @@ namespace Adjudications
         /// <param name="adjudicationData"></param>
         private static void RemoveRecords(List<Adjudication> adjudications, List<AdjudicationData> adjudicationData)
         {
+            //Remove all with matching SSN and Last Name
             adjudications.RemoveAll(r => adjudicationData.Any(a => a.SSN == r.SSN && a.LastName == r.LastName));
         }
 
+        /// <summary>
+        ///
+        /// </summary>
+        /// <param name="indeterminable"></param>
+        /// <param name="fileName"></param>
         private void GenerateSummaryFile(List<Adjudication> indeterminable, string fileName)
         {
             List<AdjudicationData> summary = new List<AdjudicationData>();
 
+            //Variable to hold indeterminable
             var theRest = indeterminable
                             .Select
                                 (
@@ -158,6 +178,7 @@ namespace Adjudications
                                 )
                             .ToList();
 
+            //Holds all processed
             summary = processed
                     .Select
                         (
@@ -182,8 +203,10 @@ namespace Adjudications
             //Combines the indeterminables and the processed into one list
             summary.AddRange(theRest);
 
+            //Log count
             log.Info("Summary Count: " + summary.Count);
 
+            //Attempt to write csv file, catch all exceptions and log the errors
             try
             {
                 //Creates the summary file
@@ -212,6 +235,7 @@ namespace Adjudications
             where TClass : class
             where TMap : CsvClassMap<TClass>
         {
+            //Import csv into a POCO
             using (CsvParser csvParser = new CsvParser(new StreamReader(filePath), config))
             {
                 using (CsvReader csvReader = new CsvReader(csvParser))
@@ -224,11 +248,11 @@ namespace Adjudications
 
                     return allRecords;
                 }
-            }            
+            }
         }
 
         /// <summary>
-        /// Checks weather or not the file can be processed
+        /// Checks whether or not the file can be processed
         /// </summary>
         /// <param name="fileColumnCount"></param>
         /// <param name="allAdjudications"></param>
@@ -260,6 +284,7 @@ namespace Adjudications
                                     )
                                 .Any(a => a.Count() > 1);
 
+            //If duplicates, log error, set OUT
             if (duplicates)
             {
                 log.Error("Duplicate Last Name + SSN Match Found");
@@ -271,6 +296,7 @@ namespace Adjudications
 
             return true;
         }
+
         /// <summary>
         /// Processes each individual adjudication and saves to the DB
         /// </summary>
@@ -285,9 +311,9 @@ namespace Adjudications
 
             //log.Info("Start: Looping Adjudications List");
 
+            //Iterate through adjudicationData
             foreach (AdjudicationData adjudicationData in adjudications)
             {
-                //log.Info(adjudicationData.FirstName + ' ' + adjudicationData.LastName);
                 //Might be able to do this the same way we hash ssn
                 //Get Investigation Information
                 adjudicationData.Investigation = investigations.SingleOrDefault(w => w.InvestigationType.ToLower() == adjudicationData.InvestigationType.ToLower());
@@ -300,21 +326,23 @@ namespace Adjudications
                     continue;
                 }
 
+                //If unfavorable
                 if (adjudicationData.InvestigationType != "Unfavorable")
                 {
                     adjudicationData.UpdatePortOfEntryDate = false;
-                                       
+
                     //3 Year Port of Entry Mismatch
                     if ((adjudicationData.LessThan3YearsUS.ToLower().Equals("(checked)") && adjudicationData.DateOfEntry == null) ||
                        (adjudicationData.LessThan3YearsUS.ToLower().Equals("(checked)") && CheckedGreaterThan3Years(adjudicationData.DateOfEntry, adjudicationData.InvestigationDate)) ||
                        (adjudicationData.LessThan3YearsUS.ToLower().Equals("(not checked)") && adjudicationData.DateOfEntry != null) ||
                        (adjudicationData.LessThan3YearsUS == null || adjudicationData.LessThan3YearsUS == "" || adjudicationData.LessThan3YearsUS.Length == 0))
-                    {                        
+                    {
                         adjudicationData.AdjudicationStatus = ProcessedStatusConstants.PORT_OF_ENTRY;
                         processed.Add(adjudicationData);
                         continue;
                     }
 
+                    //if not sac and LessThan3YearsUS checked and CheckedLessThan3Years
                     if (adjudicationData.InvestigationType != "SAC" &&
                         adjudicationData.LessThan3YearsUS.ToLower().Equals("(checked)") && CheckedLessThan3Years(adjudicationData.DateOfEntry, adjudicationData.InvestigationDate))
                     {
@@ -326,38 +354,69 @@ namespace Adjudications
                     //Update Port Of Entry Date
                     if ((adjudicationData.LessThan3YearsUS.ToString().ToLower().Equals("(checked)") && adjudicationData.DateOfEntry != null) ||
                         (adjudicationData.LessThan3YearsUS.ToString().ToLower().Equals("(not checked)") && adjudicationData.DateOfEntry == null))
-                    {                        
+                    {
                         adjudicationData.UpdatePortOfEntryDate = true;
                     }
                 }
 
-                //result = save.SaveAdjudication(adjudicationData, ssn);
+                //Store result
                 result = save.SaveAdjudication(adjudicationData, isDebug);
 
+                //Separate tuple
                 adjudicationData.ID = result.Item1;
                 adjudicationData.AdjudicationStatus =result.Item2;
                 adjudicationData.EMailRequested = result.Item3;
 
+                //Update processed
                 processed.Add(adjudicationData);
 
+                //if email requested & not debug & not duplicate
                 if (adjudicationData.EMailRequested && !isDebug && adjudicationData.AdjudicationStatus != "Duplicate")
                 {
                     //need a try catch here
+                    //Send adjudication notice
                     adjudicationEMails.SendNotice(adjudicationData.ID);
+                    //SMTP server blocks emails if sent out too fast
+                    //sleep is used to prevent emails from being flagged as spam by smtp server
                     Thread.Sleep(2500);
                 }
             }
 
+            //Clean up
             save.Dispose();
         }
-        #region "Filter Adjudication Data"
 
+        #region "Filter Adjudication Data"
+        /*
+        Here is a function that can replace CheckedGreaterThan3Years and CheckedLessThan3Years
+        Called like this
+        bool greaterThan = CompareThese(DateTimeOne,DateTimeTwo,(x, y) => x >= y);
+ 		bool lessThan = CompareThese(DateTimeOne,DateTimeTwo,(x, y) => x <= y);
+
+        private static bool CompareTo3Years(DateTime? portOfEntryDate, DateTime? investigationDate, Func<double, int, bool> op)
+        {
+            DateTime poeDate, investDate;
+            if (DateTime.TryParse(portOfEntryDate.ToString(), out poeDate) & DateTime.TryParse(investigationDate.ToString(), out investDate))
+                return op(((investDate - poeDate).TotalDays / 365.2425), 3);
+            else return false;
+        }
+        */
+
+
+        /// <summary>
+        /// Checks if investigation date minus poe date is greater than 3 years
+        /// </summary>
+        /// <param name="portOfEntryDate"></param>
+        /// <param name="investigationDate"></param>
+        /// <returns></returns>
         private bool CheckedGreaterThan3Years(DateTime? portOfEntryDate, DateTime? investigationDate)
         {
+
+            //if null return false
             if (portOfEntryDate == null)
                 return false;
 
-            DateTime poeDate = Convert.ToDateTime(portOfEntryDate);            
+            DateTime poeDate = Convert.ToDateTime(portOfEntryDate);
             DateTime investDate = (DateTime)investigationDate;
 
             //This should also handle leap years
@@ -366,11 +425,19 @@ namespace Adjudications
                 return true;
             }
 
+            //else
             return false;
         }
 
+        /// <summary>
+        /// Checks if investigation date minus poe date is less than 3 years
+        /// </summary>
+        /// <param name="portOfEntryDate"></param>
+        /// <param name="investigationDate"></param>
+        /// <returns></returns>
         private bool CheckedLessThan3Years(DateTime? portOfEntryDate, DateTime? investigationDate)
         {
+            //If null return false
             if (portOfEntryDate == null)
                 return false;
 
@@ -383,13 +450,13 @@ namespace Adjudications
                 return true;
             }
 
+            //else
             return false;
         }
 
         /// <summary>
         /// Determines the final investigation type
         /// </summary>
-
         /// <param name="investigationType1"></param>
         /// <param name="investigationType2"></param>
         /// <param name="investigationType3"></param>
@@ -434,31 +501,21 @@ namespace Adjudications
                     break;
             }
 
-            //switch (investigationType)
-            //{
-            //    case "tier 1":
-            //        investigationType = "NACI";
-            //        break;
-
-            //    case "tier 2":
-            //        investigationType = "MBI";
-            //        break;
-
-            //    case "ssbi-ppr":
-            //        investigationType = "PPR";
-            //        break;
-
-            //    default:
-            //        break;
-            //}
-
             return investigationType;
         }
 
+        /// <summary>
+        /// Returns date of sac adjudication or final adjudication if unfavorable. otherwise returns null
+        /// </summary>
+        /// <param name="SACAdjudicationDate"></param>
+        /// <param name="FinalAdjudicationDate"></param>
+        /// <param name="SACAdjudicationGSA"></param>
+        /// <param name="FinalAdjudicativeAction"></param>
+        /// <returns></returns>
         private DateTime? DetermineUnfavorableDate(DateTime? SACAdjudicationDate, DateTime? FinalAdjudicationDate, string SACAdjudicationGSA, string FinalAdjudicativeAction)
         {
             if (SACAdjudicationGSA.ToLower().Equals("unfavorable"))
-                return SACAdjudicationDate;            
+                return SACAdjudicationDate;
             else if (FinalAdjudicativeAction.ToLower().Equals("unfavorable"))
                 return FinalAdjudicationDate;
             else
@@ -490,8 +547,10 @@ namespace Adjudications
         /// <returns></returns>
         private void ProcessCaseDiscontinued(List<Adjudication> adjudications)
         {
+            //Log start of function
             log.Info("Processing Case Discontinued");
 
+            //get discontinued
             var caseDiscontinued = adjudications
                                     .Where
                                         (
@@ -509,7 +568,7 @@ namespace Adjudications
                                                 (
                                                     !string.IsNullOrEmpty(w.FinalAdjudicationDate.ToString())
                                                 )
-                                        ) 
+                                        )
                                     .Select
                                         (
                                             s =>
@@ -528,12 +587,16 @@ namespace Adjudications
                                        )
                                     .ToList();
 
+            //log number found
             log.Info("Case Discontinued: " + caseDiscontinued.Count);
 
+            //add to processed
             processed.AddRange(caseDiscontinued);
 
+            //remove the records from adjudications
             RemoveRecords(adjudications, caseDiscontinued);
 
+            //log completion of function
             log.Info("Done Processing Case Discontinued");
 
             return;
@@ -545,12 +608,14 @@ namespace Adjudications
         /// <param name="adjudications"></param>
         private void ProcessFinal(List<Adjudication> adjudications)
         {
+            //Log start of function
             log.Info("Processing Final");
 
+            //Get all finals
             var finals = adjudications
-                            .Where(w => 
+                            .Where(w =>
                                         (w.FinalAdjudicativeAction.ToLower().Equals("favorable") ||
-                                        w.FinalAdjudicativeAction.ToLower().Equals("favorable-reciprocity") &&                                        
+                                        w.FinalAdjudicativeAction.ToLower().Equals("favorable-reciprocity") &&
                                         (
                                             !string.IsNullOrEmpty(w.FinalAdjudicationDate.ToString())
                                         )) &&
@@ -579,6 +644,7 @@ namespace Adjudications
                                 )
                             .ToList();
 
+            //Try to process finals, catch all errors and log as fatal
             try
             {
                 ProcessAdjudicationList(finals);
@@ -586,19 +652,15 @@ namespace Adjudications
             catch (Exception ex)
             {
                 log.Fatal("Final: " + ex.Message, ex);
-                //foreach (PropertyDescriptor descriptor in TypeDescriptor.GetProperties(finals))
-                //{
-                //    string name = descriptor.Name;
-                //    object value = descriptor.GetValue(finals);
-                //    log.Fatal(name + ": " + value);
-                //}
-                //throw;
             }
 
+            //log count of finals
             log.Info("Final: " + finals.Count);
 
+            //remove from adjudications
             RemoveRecords(adjudications, finals);
 
+            //log completion
             log.Info("Done Processing Final");
 
             return;
@@ -610,10 +672,12 @@ namespace Adjudications
         /// <param name="adjudications"></param>
         private void ProcessFingerprint(List<Adjudication> adjudications)
         {
+            //log start of function
             log.Info("Processing Fingerprint");
 
+            //get all fingerprints
             var fingerprints = adjudications
-                            .Where(w => 
+                            .Where(w =>
                                     (w.FinalAdjudicativeAction.ToLower().Equals("(none)") &&
                                     (
                                         w.InterimAdjudication1.ToLower().Equals("cleared to enter on duty (eod)") ||
@@ -655,12 +719,16 @@ namespace Adjudications
                                 )
                             .ToList();
 
+            //process fingerprints
             ProcessAdjudicationList(fingerprints);
 
+            //log count
             log.Info("Fingerprint (EOD): " + fingerprints.Count);
 
+            //remove from adjudications
             RemoveRecords(adjudications, fingerprints);
 
+            //log completion
             log.Info("Done Processing Fingerprint");
 
             return;
@@ -672,8 +740,10 @@ namespace Adjudications
         /// <param name="adjudications"></param>
         private void ProcessRescinded(List<Adjudication> adjudications)
         {
+            //log start of function
             log.Info("Processing Rescinded");
 
+            //get all rescinded
             var rescinded = adjudications
                                 .Where(w => w.FinalAdjudicativeAction.ToLower().Equals("(none)") &&
                                         (
@@ -702,12 +772,16 @@ namespace Adjudications
                                     )
                                 .ToList();
 
+            //log count
             log.Info("Rescinded: " + rescinded.Count);
 
+            //add to processed
             processed.AddRange(rescinded);
 
+            //remove from adjudications
             RemoveRecords(adjudications, rescinded);
 
+            //log completion
             log.Info("Done Processing Rescinded");
 
             return;
@@ -719,10 +793,12 @@ namespace Adjudications
         /// <param name="adjudications"></param>
         private void ProcessSAC(List<Adjudication> adjudications)
         {
+            //log start of function
             log.Info("Processing SAC");
 
+            //get all sacs
             var sacs = adjudications
-                            .Where(w => 
+                            .Where(w =>
                                         (w.SACAdjudicationGSA.ToLower().Equals("favorable") &&
                                         (
                                             !string.IsNullOrEmpty(w.SACAdjudicationDate.ToString())
@@ -735,15 +811,15 @@ namespace Adjudications
                                         ) &&
                                         (
 							                //Interim Dates (Z, AA, AB)
-							                string.IsNullOrEmpty(w.InterimAdjudicationDate1.ToString()) && 
-							                string.IsNullOrEmpty(w.InterimAdjudicationDate2.ToString()) && 
+							                string.IsNullOrEmpty(w.InterimAdjudicationDate1.ToString()) &&
+							                string.IsNullOrEmpty(w.InterimAdjudicationDate2.ToString()) &&
 							                string.IsNullOrEmpty(w.InterimAdjudicationDate2.ToString())
 						                ) &&
                                         (
                                             //Final Actions (AH, AI)
                                             w.FinalAdjudicativeAction.ToLower().Equals("(none)") &&
                                             string.IsNullOrEmpty(w.FinalAdjudicationDate.ToString())
-                                        )	
+                                        )
                                     )
                             .Select
                                 (
@@ -764,6 +840,7 @@ namespace Adjudications
                                 )
                             .ToList();
 
+            //try process all sacs, catch all exceptions, log errors as fatal
             try
             {
                 ProcessAdjudicationList(sacs);
@@ -771,30 +848,30 @@ namespace Adjudications
             catch (Exception ex)
             {
                 log.Fatal("SAC: " + ex.Message,ex);
-                //foreach (PropertyDescriptor descriptor in TypeDescriptor.GetProperties(sacs))
-                //{
-                //    string name = descriptor.Name;
-                //    object value = descriptor.GetValue(sacs);
-                //    log.Fatal(name + ": " + value);
-                //}
-                //throw;
             }
-            
-            
 
+            //log count
             log.Info("SAC: " + sacs.Count);
 
+            //remove from adjudications
             RemoveRecords(adjudications, sacs);
 
+            //log completion
             log.Info("Done Processing SAC");
 
             return;
         }
 
+        /// <summary>
+        /// Process unfavorable sacs
+        /// </summary>
+        /// <param name="adjudications"></param>
         private void ProcessUnfavorableSAC(List<Adjudication> adjudications)
         {
+            //log start of function
             log.Info("Processing Unfavorable SAC");
 
+            //get all unfavorable sacs
             var unfavorableSAC = adjudications
                                 .Where(w =>
                                             (
@@ -823,27 +900,37 @@ namespace Adjudications
                                     )
                                 .ToList();
 
+            //process unfavorable sacs
             ProcessAdjudicationList(unfavorableSAC);
 
+            //log count
             log.Info("Unfavorable SAC: " + unfavorableSAC.Count);
 
+            //remove from adjudications
             RemoveRecords(adjudications, unfavorableSAC);
 
+            //log completion
             log.Info("Done Processing Unfavorable SAC");
 
             return;
         }
 
+        /// <summary>
+        /// Processes unfavorable finals
+        /// </summary>
+        /// <param name="adjudications"></param>
         private void ProcessUnfavorableFinal(List<Adjudication> adjudications)
         {
+            //log start of function
             log.Info("Processing Unfavorable Final");
 
+            //get all unfavorable finals
             var unfavorableFinal = adjudications
                                 .Where(w =>
-                                            (                                                
+                                            (
                                                 w.FinalAdjudicativeAction.ToLower().Equals("unfavorable")
                                             ) &&
-                                            (                                                
+                                            (
                                                 !string.IsNullOrEmpty(w.FinalAdjudicationDate.ToString())
                                             )
                                         )
@@ -866,12 +953,16 @@ namespace Adjudications
                                     )
                                 .ToList();
 
+            //process unfavorable finals
             ProcessAdjudicationList(unfavorableFinal);
 
+            //log count
             log.Info("Unfavorable Final: " + unfavorableFinal.Count);
 
+            //remove from adjudications
             RemoveRecords(adjudications, unfavorableFinal);
 
+            //log completion
             log.Info("Done Processing Unfavorable Final");
 
             return;
@@ -884,14 +975,16 @@ namespace Adjudications
         /// <returns></returns>
         private void ProcessUnfavorable(List<Adjudication> adjudications)
         {
+            //log start of function
             log.Info("Processing Unfavorable");
 
+            //get all unfavorable
             var unfavorables = adjudications
-                                .Where(w => 
+                                .Where(w =>
                                             (
                                                 w.SACAdjudicationGSA.ToLower().Equals("unfavorable") ||
                                                 w.FinalAdjudicativeAction.ToLower().Equals("unfavorable")
-                                            ) &&                                            
+                                            ) &&
                                             (
                                                 !string.IsNullOrEmpty(w.SACAdjudicationDate.ToString()) ||
                                                 !string.IsNullOrEmpty(w.FinalAdjudicationDate.ToString())
@@ -916,16 +1009,21 @@ namespace Adjudications
                                     )
                                 .ToList();
 
+            //process unfavorable
             ProcessAdjudicationList(unfavorables);
 
+            //log count
             log.Info("Unfavorables: " + unfavorables.Count);
 
+            //remove from adjudications
             RemoveRecords(adjudications, unfavorables);
 
+            //log completion
             log.Info("Done Processing Unfavorable");
 
             return;
         }
+
         //change to constants
         /// <summary>
         /// Gets a list of finals and processes them
@@ -934,10 +1032,12 @@ namespace Adjudications
         /// if nac/naci dates are filled leave alone
         private void ProcessWaitingForFinal(List<Adjudication> adjudications)
         {
+            //log start of function
             log.Info("Processing Waiting For Final");
 
+            //get waiting for finals
             var waitingForFinals = adjudications
-                            .Where(w => 
+                            .Where(w =>
                                     (w.FinalAdjudicativeAction.ToLower().Equals("(none)") &&
                                     (
                                         w.InterimAdjudication1.ToLower().Equals("not cleared to enter on duty (eod)") ||
@@ -979,12 +1079,16 @@ namespace Adjudications
                                 )
                             .ToList();
 
+            //process waiting for finals
             ProcessAdjudicationList(waitingForFinals);
 
+            //log count
             log.Info("Waiting For Final: " + waitingForFinals.Count);
 
+            //remove from adjudications
             RemoveRecords(adjudications, waitingForFinals);
 
+            //log completion
             log.Info("Done Processing Waiting For Final");
 
             return;
