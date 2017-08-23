@@ -84,7 +84,7 @@ namespace Adjudications.Utilities
                         message.Attachments.Add(new Attachment(_strEmailAttachments.ToString().Trim()));
                     }
 
-                    // Set the mail object's smtpserver property
+                    // Set the mail object's smtp server property
                     SmtpMail = new SmtpClient(_strSmtpServer);
 
                     //-->SmtpMail.Credentials = (ICredentialsByHost)CredentialCache.DefaultNetworkCredentials;
