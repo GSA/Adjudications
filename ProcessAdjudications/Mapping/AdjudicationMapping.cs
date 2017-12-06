@@ -3,7 +3,7 @@ using CsvHelper.Configuration;
 
 namespace Adjudications.Mapping
 {
-    sealed class AdjudicationMapping : CsvClassMap<Adjudication>
+    sealed class AdjudicationMapping : ClassMap<Adjudication>
     {
         /// <summary>
         /// Used to map the adjudication file to the object
@@ -53,7 +53,7 @@ namespace Adjudications.Mapping
         }
     }
 
-    sealed class SummaryMapping : CsvClassMap<AdjudicationData>
+    sealed class SummaryMapping : ClassMap<AdjudicationData>
     {
         /// <summary>
         /// Used to map the results to the summary object
@@ -74,18 +74,18 @@ namespace Adjudications.Mapping
         }
     }
 
-    sealed class InvestigationMapping : CsvClassMap<Investigation>
+    sealed class InvestigationMapping : ClassMap<Investigation>
     {
         /// <summary>
         /// Used to map investigation data to the investigation object
         /// </summary>
         public InvestigationMapping()
         {
-            Map(m => m.InvestigationType).Index(0);
-            Map(m => m.TypeAccess).Index(1);
-            Map(m => m.isNAC).Index(2);
-            Map(m => m.isNACI).Index(3);
-            Map(m => m.isFavorable).Index(4);
+            Map(m => m.InvestigationType).Name(InvestigationsConstants.INVESTIGATION_TYPE);
+            Map(m => m.TypeAccess).Name(InvestigationsConstants.TYPE_ACCESS);
+            Map(m => m.isNAC).Name(InvestigationsConstants.NAC);
+            Map(m => m.isNACI).Name(InvestigationsConstants.NACI);
+            Map(m => m.isFavorable).Name(InvestigationsConstants.FAVORABLE);
         }
     }
 }

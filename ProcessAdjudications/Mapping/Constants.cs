@@ -133,4 +133,15 @@ namespace Adjudications.Mapping
         public const string NOACTION = "No Action";
         public const string PORT_OF_ENTRY = "< 3 Year Error";
     }
+
+    class InvestigationsConstants
+    {
+        private InvestigationsConstants() { }
+
+        public const string INVESTIGATION_TYPE = "Invest Type";
+        public const string TYPE_ACCESS = "Type Access";
+        public const string NAC = "NAC";
+        public const string NACI = "NACI";
+        public const string FAVORABLE = "Favorable";
+    }
 }

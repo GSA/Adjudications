@@ -17,8 +17,8 @@ namespace Adjudications
     public class ProcessAdjudications
     {
         //Class variables
-        private static CsvConfiguration config;
-        private static int defaultColumnCount = 36;
+        private static CsvHelper.Configuration.Configuration config;
+        private static int defaultColumnCount = 38;
         private static List<Investigation> investigations;
         private static bool isDebug;
         private static List<AdjudicationData> processed;
@@ -33,7 +33,8 @@ namespace Adjudications
         public ProcessAdjudications(bool debugMode)
         {
             //Define function variables
-            config = new CsvConfiguration();
+            // CsvConfiguration changed to CsvHelper.Configuration.Configuration for v. 6.0.0
+            config = new CsvHelper.Configuration.Configuration();
             investigations = new List<Investigation>();
             processed = new List<AdjudicationData>();
 
@@ -42,9 +43,15 @@ namespace Adjudications
             //CSV settings
             config.Delimiter = ",";
             config.HasHeaderRecord = true;
-            config.WillThrowOnMissingField = true;
-            config.IsHeaderCaseSensitive = false;
-            config.TrimHeaders = false;
+
+            config.MissingFieldFound = null; // (headerNames, index, context) =>
+            //{
+            //    log.Error($"Field with name ['{string.Join("', '", headerNames)}'] at index '{index}' was not found.");
+            //};
+
+            // Ignores header case
+            config.PrepareHeaderForMatch = header => header?.ToLower();
+            config.TrimOptions = TrimOptions.None;
 
             //Sets Debug Mode
             isDebug = debugMode; //bool.Parse(ConfigurationManager.AppSettings["DEBUGMODE"]);
@@ -231,23 +238,25 @@ namespace Adjudications
         /// <param name="config"></param>
         /// <param name="columnCount"></param>
         /// <returns></returns>
-        private List<TClass> GetFileData<TClass, TMap>(string filePath, CsvConfiguration config, out int columnCount)
+        private List<TClass> GetFileData<TClass, TMap>(string filePath, CsvHelper.Configuration.Configuration config, out int columnCount)
             where TClass : class
-            where TMap : CsvClassMap<TClass>
+            where TMap : ClassMap<TClass>
         {
             //Import csv into a POCO
-            using (CsvParser csvParser = new CsvParser(new StreamReader(filePath), config))
+            // Updated this section due to breaking changes w/ CsvHelper v. 6.0.0
+            // NullReference error thown due to multiple Dispose() calls
+            var reader = new StreamReader(filePath);
+            
+            using (CsvReader csvReader = new CsvReader(reader, config, false))
             {
-                using (CsvReader csvReader = new CsvReader(csvParser))
-                {
-                    csvReader.Configuration.RegisterClassMap<TMap>();
+                csvReader.Configuration.RegisterClassMap<TMap>();
 
-                    List<TClass> allRecords = csvReader.GetRecords<TClass>().ToList();
+                List<TClass> allRecords = csvReader.GetRecords<TClass>().ToList();
 
-                    columnCount = csvReader.FieldHeaders.Count();
+                // Uupdated due to changes in CsvHelper v. 6.0.0
+                columnCount = csvReader.Context.HeaderRecord.Count();
 
-                    return allRecords;
-                }
+                return allRecords;
             }
         }
 
