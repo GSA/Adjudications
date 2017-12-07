@@ -44,10 +44,10 @@ namespace Adjudications
             config.Delimiter = ",";
             config.HasHeaderRecord = true;
 
-            config.MissingFieldFound = null; // (headerNames, index, context) =>
-            //{
-            //    log.Error($"Field with name ['{string.Join("', '", headerNames)}'] at index '{index}' was not found.");
-            //};
+            config.MissingFieldFound = (headerNames, index, context) =>
+            {
+                log.Error($"Field with name ['{string.Join("', '", headerNames)}'] at index '{index}' was not found.");
+            };
 
             // Ignores header case
             config.PrepareHeaderForMatch = header => header?.ToLower();
