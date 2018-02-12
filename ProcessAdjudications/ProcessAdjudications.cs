@@ -264,32 +264,40 @@ namespace Adjudications
             //check column counts
             if (fileColumnCount != defaultColumnCount)
             {
-                log.Error("Column counts do not match!");
+                var errorMessage = "Column counts do not match";
 
-                error = "Column counts do not match";
+                log.Error($"{errorMessage}!");
+                error = errorMessage;
 
                 return false;
             }
 
-            //Determines if there are duplicates
-            var duplicates = allAdjudications
-                                .GroupBy
-                                    (
-                                        g =>
-                                            new
-                                            {
-                                                LastName = g.LastName,
-                                                SSN = g.SSN
-                                            }
-                                    )
-                                .Any(a => a.Count() > 1);
+            // Get duplicate adjudications groupd by last name, SSN
+            var duplicateAdjudications = allAdjudications
+                    .GroupBy
+                        (
+                            g =>
+                                new
+                                {
+                                    LastName = g.LastName,
+                                    SSN = g.SSN
+                                }
+                        )
+                        .Where(x => x.Count() > 1);
 
-            //If duplicates, log error, set OUT
+            // Get list of duplicate last names...
+            var duplicateLastNames = duplicateAdjudications.Select(x => x.Key.LastName).ToList();
+
+            // Determines if there are duplicates
+            var duplicates = duplicateLastNames.Any(a => a.Count() > 1);
+
+            // If duplicates, log error, set OUT error message
             if (duplicates)
             {
-                log.Error("Duplicate Last Name + SSN Match Found");
+                var errorMessage = $"Duplicate Last Name + SSN Match Found for Last Name(s) {string.Join(",", duplicateLastNames)}";
 
-                error = "Duplicate Last Name + SSN Match Found";
+                log.Error(errorMessage);
+                error = errorMessage;
 
                 return false;
             }
