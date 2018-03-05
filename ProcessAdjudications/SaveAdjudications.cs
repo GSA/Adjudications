@@ -32,7 +32,7 @@ namespace Adjudications
         /// <param name="saveData"></param>
         /// <param name="ssn"></param>
         /// <returns></returns>
-        public Tuple<int, string, bool> SaveAdjudication(AdjudicationData saveData, bool isDebug) //, byte[] ssn
+        public Tuple<int, string, bool, string> SaveAdjudication(AdjudicationData saveData, bool isDebug) //, byte[] ssn
         {
             try
             {
@@ -78,7 +78,8 @@ namespace Adjudications
                             new MySqlParameter { ParameterName = "updatePortOfEntryDate", Value = saveData.UpdatePortOfEntryDate, DbType = DbType.Boolean, Direction = ParameterDirection.Input },
                             new MySqlParameter { ParameterName = "adjudicationStatus", MySqlDbType = MySqlDbType.VarChar, Size = 500, Direction = ParameterDirection.Output },
                             new MySqlParameter { ParameterName = "id", MySqlDbType = MySqlDbType.Int32, Size = 20, Direction = ParameterDirection.Output },
-                            new MySqlParameter { ParameterName = "sendEMail", DbType = DbType.Boolean, Direction = ParameterDirection.Output }
+                            new MySqlParameter { ParameterName = "sendEMail", DbType = DbType.Boolean, Direction = ParameterDirection.Output },
+                            new MySqlParameter { ParameterName = "persStatus", MySqlDbType = MySqlDbType.VarChar, Size=12, Direction = ParameterDirection.Output }
                         };
 
                         //Add parameters to cmd
@@ -88,7 +89,7 @@ namespace Adjudications
                         cmd.ExecuteNonQuery();
 
                         //Return tuple of id,adjudication status, and sendEmail
-                        return new Tuple<int, string, bool>((int)cmd.Parameters["id"].Value, (string)cmd.Parameters["adjudicationStatus"].Value, Convert.ToBoolean(cmd.Parameters["sendEMail"].Value));
+                        return new Tuple<int, string, bool, string>((int)cmd.Parameters["id"].Value, (string)cmd.Parameters["adjudicationStatus"].Value, Convert.ToBoolean(cmd.Parameters["sendEMail"].Value), (string)cmd.Parameters["persStatus"].Value);
                     }
                 }
             }
@@ -96,7 +97,7 @@ namespace Adjudications
             catch (Exception ex)
             {
                 log.Error("Save: " + ex.Message + " - " + ex.InnerException);
-                return new Tuple<int, string, bool>(0, "ERROR", false);
+                return new Tuple<int, string, bool, string>(0, "ERROR", false, string.Empty);
             }
         }
 

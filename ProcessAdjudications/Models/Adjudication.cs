@@ -130,5 +130,10 @@ namespace Adjudications.Models
         /// Column AK
         /// </summary>
         public DateTime? DateOfEntry { get; set; }
+
+        /// <summary>
+        ///     Holds pers_status 
+        /// </summary>
+        public string Status { get; set; }
     }
 }
