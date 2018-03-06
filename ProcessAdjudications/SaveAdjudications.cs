@@ -28,6 +28,7 @@ namespace Adjudications
         /// Item 1 = Person ID
         /// Item 2 = Adjudication Status
         /// Item 3 = E-Mail Requested (Send E-Mail)
+        /// Item 4 = Pers Status
         /// </summary>
         /// <param name="saveData"></param>
         /// <param name="ssn"></param>
@@ -88,7 +89,7 @@ namespace Adjudications
                         //Execute cmd
                         cmd.ExecuteNonQuery();
 
-                        //Return tuple of id,adjudication status, and sendEmail
+                        //Return tuple of id,adjudication status, sendEmail, and pers status
                         return new Tuple<int, string, bool, string>((int)cmd.Parameters["id"].Value, (string)cmd.Parameters["adjudicationStatus"].Value, Convert.ToBoolean(cmd.Parameters["sendEMail"].Value), (string)cmd.Parameters["persStatus"].Value);
                     }
                 }
