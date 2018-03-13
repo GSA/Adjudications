@@ -71,6 +71,7 @@ namespace Adjudications.Mapping
             Map(x => x.EMailRequested);
 
             Map(m => m.ID);
+            Map(m => m.Status);
         }
     }
 

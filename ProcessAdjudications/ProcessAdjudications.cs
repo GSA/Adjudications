@@ -173,7 +173,8 @@ namespace Adjudications
                                             InvestigationDate = null,
                                             AdjudicationStatus = "Indeterminable",
                                             EMailRequested = false,
-                                            ID = 0
+                                            ID = 0,
+                                            Status = s.Status
                                         }
                                 )
                             .ToList();
@@ -193,7 +194,8 @@ namespace Adjudications
                                     InvestigationDate = s.InvestigationDate,
                                     AdjudicationStatus = s.AdjudicationStatus,
                                     EMailRequested = s.EMailRequested,
-                                    ID = s.ID
+                                    ID = s.ID,
+                                    Status = s.Status
                                 }
                         )
                     .OrderBy(o => o.InvestigationType)
@@ -314,8 +316,8 @@ namespace Adjudications
             SaveAdjudications save = new SaveAdjudications();
             AdjudicationEMails adjudicationEMails = new AdjudicationEMails();
 
-            //Item 1 = ID, Item 2 = Status, Item 3 = Send E-Mail
-            Tuple<int, string, bool> result = new Tuple<int, string, bool>(0, string.Empty, false);
+            //Item 1 = ID, Item 2 = Status, Item 3 = Send E-Mail, Item 4 = Pers Status
+            Tuple<int, string, bool, string> result = new Tuple<int, string, bool, string>(0, string.Empty, false, string.Empty);
 
             //log.Info("Start: Looping Adjudications List");
 
@@ -374,6 +376,7 @@ namespace Adjudications
                 adjudicationData.ID = result.Item1;
                 adjudicationData.AdjudicationStatus =result.Item2;
                 adjudicationData.EMailRequested = result.Item3;
+                adjudicationData.Status = result.Item4;
 
                 //Update processed
                 processed.Add(adjudicationData);
