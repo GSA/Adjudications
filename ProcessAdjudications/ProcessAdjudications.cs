@@ -2,9 +2,11 @@
 using Adjudications.Models;
 using CsvHelper;
 using CsvHelper.Configuration;
+using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Data;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -150,16 +152,77 @@ namespace Adjudications
         }
 
         /// <summary>
+        ///     Gets the pers Id and the pers status for the indeterminable records.
+        /// </summary>
+        /// <param name="indeterminable">Indeterminable record</param>
+        /// <returns>Updated indeterminable record with pers Id and status.</returns>
+        private Adjudication GetIdAndStatusForIndeterminable(Adjudication indeterminable)
+        {       
+            var connString = ConfigurationManager.ConnectionStrings["GCIMS"].ToString();
+            var updatedIndeterminable = indeterminable;
+
+            try
+            {
+                using (var conn = new MySqlConnection(connString))
+                {
+                    conn.Open();                    
+
+                    using (var cmd = new MySqlCommand())
+                    {
+                        cmd.Connection = conn;
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.CommandText = "spGetStatusFor_Indeterminable";
+                        cmd.Parameters.Clear();
+
+                        //Set  new sql parameters
+                        var adjudicationParameters = new MySqlParameter[]
+                        {
+                            new MySqlParameter { ParameterName = "lastname", Value = indeterminable.LastName, MySqlDbType = MySqlDbType.VarChar, Size = 60, Direction = ParameterDirection.Input },
+                            new MySqlParameter { ParameterName = "ssn", Value = u.HashSSN(indeterminable.SSN), MySqlDbType = MySqlDbType.VarBinary, Size = 32, Direction = ParameterDirection.Input },
+                            new MySqlParameter { ParameterName = "id", MySqlDbType = MySqlDbType.Int32, Size = 20, Direction = ParameterDirection.Output },
+                            new MySqlParameter { ParameterName = "persStatus", MySqlDbType = MySqlDbType.VarChar, Size=12, Direction = ParameterDirection.Output }
+                        };
+
+                        cmd.Parameters.AddRange(adjudicationParameters);
+                        cmd.ExecuteNonQuery();
+
+                        var returnedId = 0;
+                        int.TryParse(cmd.Parameters["id"].Value.ToString(), out returnedId);
+
+                        updatedIndeterminable.ID = returnedId;
+                        updatedIndeterminable.Status = cmd.Parameters["persStatus"].Value.ToString();           
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Error("Save: " + ex.Message + " - " + ex.InnerException);
+
+                updatedIndeterminable.ID = 0;
+                updatedIndeterminable.Status = "ERROR";
+            }
+
+            return updatedIndeterminable;
+        }
+
+        /// <summary>
         ///
         /// </summary>
-        /// <param name="indeterminable"></param>
+        /// <param name="indeterminables"></param>
         /// <param name="fileName"></param>
-        private void GenerateSummaryFile(List<Adjudication> indeterminable, string fileName)
+        private void GenerateSummaryFile(List<Adjudication> indeterminables, string fileName)
         {
-            List<AdjudicationData> summary = new List<AdjudicationData>();
+            var summary = new List<AdjudicationData>();
+            var updatedIndeterminables = new List<Adjudication>();
+
+            // Get person Id for each indeterminable...
+            foreach (var item in indeterminables)
+            {
+                updatedIndeterminables.Add(this.GetIdAndStatusForIndeterminable(item));
+            }
 
             //Variable to hold indeterminable
-            var theRest = indeterminable
+            var theRest = updatedIndeterminables
                             .Select
                                 (
                                     s =>
@@ -173,7 +236,7 @@ namespace Adjudications
                                             InvestigationDate = null,
                                             AdjudicationStatus = "Indeterminable",
                                             EMailRequested = false,
-                                            ID = 0,
+                                            ID = s.ID,
                                             Status = s.Status
                                         }
                                 )
