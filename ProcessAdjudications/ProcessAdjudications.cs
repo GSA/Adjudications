@@ -2,9 +2,11 @@
 using Adjudications.Models;
 using CsvHelper;
 using CsvHelper.Configuration;
+using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Data;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -150,16 +152,77 @@ namespace Adjudications
         }
 
         /// <summary>
+        ///     Gets the pers Id and the pers status for the indeterminable records.
+        /// </summary>
+        /// <param name="indeterminable">Indeterminable record</param>
+        /// <returns>Updated indeterminable record with pers Id and status.</returns>
+        private Adjudication GetIdAndStatusForIndeterminable(Adjudication indeterminable)
+        {       
+            var connString = ConfigurationManager.ConnectionStrings["GCIMS"].ToString();
+            var updatedIndeterminable = indeterminable;
+
+            try
+            {
+                using (var conn = new MySqlConnection(connString))
+                {
+                    conn.Open();                    
+
+                    using (var cmd = new MySqlCommand())
+                    {
+                        cmd.Connection = conn;
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.CommandText = "spGetStatusFor_Indeterminable";
+                        cmd.Parameters.Clear();
+
+                        //Set  new sql parameters
+                        var adjudicationParameters = new MySqlParameter[]
+                        {
+                            new MySqlParameter { ParameterName = "lastname", Value = indeterminable.LastName, MySqlDbType = MySqlDbType.VarChar, Size = 60, Direction = ParameterDirection.Input },
+                            new MySqlParameter { ParameterName = "ssn", Value = u.HashSSN(indeterminable.SSN), MySqlDbType = MySqlDbType.VarBinary, Size = 32, Direction = ParameterDirection.Input },
+                            new MySqlParameter { ParameterName = "id", MySqlDbType = MySqlDbType.Int32, Size = 20, Direction = ParameterDirection.Output },
+                            new MySqlParameter { ParameterName = "persStatus", MySqlDbType = MySqlDbType.VarChar, Size=12, Direction = ParameterDirection.Output }
+                        };
+
+                        cmd.Parameters.AddRange(adjudicationParameters);
+                        cmd.ExecuteNonQuery();
+
+                        var returnedId = 0;
+                        int.TryParse(cmd.Parameters["id"].Value.ToString(), out returnedId);
+
+                        updatedIndeterminable.ID = returnedId;
+                        updatedIndeterminable.Status = cmd.Parameters["persStatus"].Value.ToString();           
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Error("Save: " + ex.Message + " - " + ex.InnerException);
+
+                updatedIndeterminable.ID = 0;
+                updatedIndeterminable.Status = "ERROR";
+            }
+
+            return updatedIndeterminable;
+        }
+
+        /// <summary>
         ///
         /// </summary>
-        /// <param name="indeterminable"></param>
+        /// <param name="indeterminables"></param>
         /// <param name="fileName"></param>
-        private void GenerateSummaryFile(List<Adjudication> indeterminable, string fileName)
+        private void GenerateSummaryFile(List<Adjudication> indeterminables, string fileName)
         {
-            List<AdjudicationData> summary = new List<AdjudicationData>();
+            var summary = new List<AdjudicationData>();
+            var updatedIndeterminables = new List<Adjudication>();
+
+            // Get person Id for each indeterminable...
+            foreach (var item in indeterminables)
+            {
+                updatedIndeterminables.Add(this.GetIdAndStatusForIndeterminable(item));
+            }
 
             //Variable to hold indeterminable
-            var theRest = indeterminable
+            var theRest = updatedIndeterminables
                             .Select
                                 (
                                     s =>
@@ -173,7 +236,8 @@ namespace Adjudications
                                             InvestigationDate = null,
                                             AdjudicationStatus = "Indeterminable",
                                             EMailRequested = false,
-                                            ID = 0
+                                            ID = s.ID,
+                                            Status = s.Status
                                         }
                                 )
                             .ToList();
@@ -193,7 +257,8 @@ namespace Adjudications
                                     InvestigationDate = s.InvestigationDate,
                                     AdjudicationStatus = s.AdjudicationStatus,
                                     EMailRequested = s.EMailRequested,
-                                    ID = s.ID
+                                    ID = s.ID,
+                                    Status = s.Status
                                 }
                         )
                     .OrderBy(o => o.InvestigationType)
@@ -264,32 +329,40 @@ namespace Adjudications
             //check column counts
             if (fileColumnCount != defaultColumnCount)
             {
-                log.Error("Column counts do not match!");
+                var errorMessage = "Column counts do not match";
 
-                error = "Column counts do not match";
+                log.Error($"{errorMessage}!");
+                error = errorMessage;
 
                 return false;
             }
 
-            //Determines if there are duplicates
-            var duplicates = allAdjudications
-                                .GroupBy
-                                    (
-                                        g =>
-                                            new
-                                            {
-                                                LastName = g.LastName,
-                                                SSN = g.SSN
-                                            }
-                                    )
-                                .Any(a => a.Count() > 1);
+            // Get duplicate adjudications groupd by last name, SSN
+            var duplicateAdjudications = allAdjudications
+                    .GroupBy
+                        (
+                            g =>
+                                new
+                                {
+                                    LastName = g.LastName,
+                                    SSN = g.SSN
+                                }
+                        )
+                        .Where(x => x.Count() > 1);
 
-            //If duplicates, log error, set OUT
+            // Get list of duplicate last names...
+            var duplicateLastNames = duplicateAdjudications.Select(x => x.Key.LastName).ToList();
+
+            // Determines if there are duplicates
+            var duplicates = duplicateLastNames.Any(a => a.Count() > 1);
+
+            // If duplicates, log error, set OUT error message
             if (duplicates)
             {
-                log.Error("Duplicate Last Name + SSN Match Found");
+                var errorMessage = $"Duplicate Last Name + SSN Match Found for Last Name(s) {string.Join(",", duplicateLastNames)}";
 
-                error = "Duplicate Last Name + SSN Match Found";
+                log.Error(errorMessage);
+                error = errorMessage;
 
                 return false;
             }
@@ -306,8 +379,8 @@ namespace Adjudications
             SaveAdjudications save = new SaveAdjudications();
             AdjudicationEMails adjudicationEMails = new AdjudicationEMails();
 
-            //Item 1 = ID, Item 2 = Status, Item 3 = Send E-Mail
-            Tuple<int, string, bool> result = new Tuple<int, string, bool>(0, string.Empty, false);
+            //Item 1 = ID, Item 2 = Status, Item 3 = Send E-Mail, Item 4 = Pers Status
+            Tuple<int, string, bool, string> result = new Tuple<int, string, bool, string>(0, string.Empty, false, string.Empty);
 
             //log.Info("Start: Looping Adjudications List");
 
@@ -366,6 +439,7 @@ namespace Adjudications
                 adjudicationData.ID = result.Item1;
                 adjudicationData.AdjudicationStatus =result.Item2;
                 adjudicationData.EMailRequested = result.Item3;
+                adjudicationData.Status = result.Item4;
 
                 //Update processed
                 processed.Add(adjudicationData);

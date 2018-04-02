@@ -81,5 +81,10 @@ namespace Adjudications.Models
         /// Holds the investigation data
         /// </summary>
         public Investigation Investigation { get; set; }
+
+        /// <summary>
+        ///     Holds pers_status 
+        /// </summary>
+        public string Status { get; set; }
     }
 }
