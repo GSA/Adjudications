@@ -5,6 +5,11 @@ namespace Adjudications.Models
     class Adjudication
     {
         /// <summary>
+        ///     The person Id
+        /// </summary>
+        public int ID { get; set; }
+
+        /// <summary>
         /// Investigation type that is to be set in the GCIMS Table
         /// </summary>
         public string InvestigationType { get; set; }
@@ -130,5 +135,10 @@ namespace Adjudications.Models
         /// Column AK
         /// </summary>
         public DateTime? DateOfEntry { get; set; }
+
+        /// <summary>
+        ///     Holds pers_status 
+        /// </summary>
+        public string Status { get; set; }
     }
 }
