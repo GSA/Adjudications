@@ -548,7 +548,7 @@ namespace Adjudications
             dateList.Add(investigationDate2);
             dateList.Add(investigationDate3);
 
-            return dateList.Min();
+            return dateList.Max();
         }
 
         /// <summary>
