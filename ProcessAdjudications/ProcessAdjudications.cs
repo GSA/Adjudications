@@ -39,8 +39,6 @@ namespace Adjudications
             investigations = new List<Investigation>();
             processed = new List<AdjudicationData>();
 
-            int investColumnCount = 0;
-
             //CSV settings
             config.Delimiter = ",";
             config.HasHeaderRecord = true;
@@ -52,7 +50,7 @@ namespace Adjudications
             isDebug = debugMode; //bool.Parse(ConfigurationManager.AppSettings["DEBUGMODE"]);
 
             //Loads the investigation data (lookup)
-            investigations = GetFileData<Investigation, InvestigationMapping>(AppDomain.CurrentDomain.BaseDirectory + "Lookups\\Investigations.csv", config, out investColumnCount);
+            investigations = GetInvestigationData();
 
             //If not int, log error and throw invalid cast exception
             if (!int.TryParse(ConfigurationManager.AppSettings["COLUMNCOUNT"].ToString(), out defaultColumnCount))
@@ -285,6 +283,55 @@ namespace Adjudications
             {
                 log.Error(ex.Message + " - " + ex.InnerException);
             }
+        }
+
+        /// <summary>
+        ///     Retrieves investigation data from the investigation database table
+        /// </summary>
+        /// <returns>A <see cref="List{Investigation}"/> containing <see cref="Investigation"/> records.</returns>
+        private List<Investigation> GetInvestigationData()
+        {
+            var investigationList = new List<Investigation>();
+
+            try
+            {
+                var connString = ConfigurationManager.ConnectionStrings["GCIMS"].ToString();
+
+                using (var conn = new MySqlConnection(connString))
+                {
+                    conn.Open();
+
+                    using (var cmd = new MySqlCommand())
+                    {
+                        cmd.Connection = conn;
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.CommandText = "uspGetActiveInvestigationTypes";
+
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                var investigation = new Investigation
+                                {
+                                    InvestigationType = reader["investigation_type"].ToString(),
+                                    TypeAccess = reader["type_access"].ToString(),
+                                    isNAC = reader.GetBoolean("nac_value"),
+                                    isNACI = reader.GetBoolean("naci_value"),
+                                    isFavorable = reader.GetBoolean("favorable")
+                                };
+
+                                investigationList.Add(investigation);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Error($"Cannot retrieve investigation records from database - {ex.Message} - {ex.InnerException}");
+            }
+
+            return investigationList;
         }
 
         /// <summary>
@@ -565,8 +612,14 @@ namespace Adjudications
                 case "tier 2s":
                     investigationType = "Tier 2S";
                     break;
+                case "tier 2rs":
+                    investigationType = "Tier 2RS";
+                    break;
                 case "tier 4":
                     investigationType = "Tier 4";
+                    break;
+                case "tier 4r":
+                    investigationType = "Tier 4R";
                     break;
                 case "ssbi-ppr":
                     investigationType = "PPR";
