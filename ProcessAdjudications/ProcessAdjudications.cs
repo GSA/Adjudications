@@ -21,7 +21,7 @@ namespace Adjudications
         //Class variables
         private static CsvConfiguration config;
         private static int defaultColumnCount = 36;
-        private static List<Investigation> investigations;
+        private static List<Investigation> investigationTypes;
         private static bool isDebug;
         private static List<AdjudicationData> processed;
         private static Utilities.Utilities u = new Utilities.Utilities();
@@ -36,7 +36,7 @@ namespace Adjudications
         {
             //Define function variables
             config = new CsvConfiguration();
-            investigations = new List<Investigation>();
+            investigationTypes = new List<Investigation>();
             processed = new List<AdjudicationData>();
 
             //CSV settings
@@ -50,7 +50,7 @@ namespace Adjudications
             isDebug = debugMode; //bool.Parse(ConfigurationManager.AppSettings["DEBUGMODE"]);
 
             //Loads the investigation data (lookup)
-            investigations = GetInvestigationData();
+            investigationTypes = GetInvestigationData();
 
             //If not int, log error and throw invalid cast exception
             if (!int.TryParse(ConfigurationManager.AppSettings["COLUMNCOUNT"].ToString(), out defaultColumnCount))
@@ -328,7 +328,7 @@ namespace Adjudications
             }
             catch (Exception ex)
             {
-                log.Error($"Cannot retrieve investigation records from database - {ex.Message} - {ex.InnerException}");
+                log.Error($"Failed to retrieve investigation records from database - {ex.Message} - {ex.InnerException}");
             }
 
             return investigationList;
@@ -436,7 +436,8 @@ namespace Adjudications
             {
                 //Might be able to do this the same way we hash ssn
                 //Get Investigation Information
-                adjudicationData.Investigation = investigations.SingleOrDefault(w => w.InvestigationType.ToLower() == adjudicationData.InvestigationType.ToLower());
+                adjudicationData.Investigation = 
+                    investigationTypes.SingleOrDefault(w => string.Equals(w.InvestigationType, adjudicationData.InvestigationType, StringComparison.CurrentCultureIgnoreCase));
 
                 //Missing Investigation Data
                 if (adjudicationData.Investigation == null)
