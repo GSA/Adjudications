@@ -50,7 +50,7 @@ namespace Adjudications
             isDebug = debugMode; //bool.Parse(ConfigurationManager.AppSettings["DEBUGMODE"]);
 
             //Loads the investigation data (lookup)
-            investigationTypes = GetInvestigationData();
+            investigationTypes = GetInvestigationTypeData();
 
             //If not int, log error and throw invalid cast exception
             if (!int.TryParse(ConfigurationManager.AppSettings["COLUMNCOUNT"].ToString(), out defaultColumnCount))
@@ -289,7 +289,7 @@ namespace Adjudications
         ///     Retrieves investigation data from the investigation database table
         /// </summary>
         /// <returns>A <see cref="List{Investigation}"/> containing <see cref="Investigation"/> records.</returns>
-        private List<Investigation> GetInvestigationData()
+        private List<Investigation> GetInvestigationTypeData()
         {
             var investigationList = new List<Investigation>();
 
