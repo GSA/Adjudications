@@ -19,7 +19,7 @@ namespace Adjudications
     public class ProcessAdjudications
     {
         //Class variables
-        private static CsvConfiguration config;
+        private static CsvHelper.Configuration.Configuration config;
         private static int defaultColumnCount = 36;
         private static List<Investigation> investigations;
         private static bool isDebug;
@@ -35,24 +35,28 @@ namespace Adjudications
         public ProcessAdjudications(bool debugMode)
         {
             //Define function variables
-            config = new CsvConfiguration();
+            config = new CsvHelper.Configuration.Configuration();
             investigations = new List<Investigation>();
             processed = new List<AdjudicationData>();
 
-            int investColumnCount = 0;
+            //int investColumnCount = 0;
 
             //CSV settings
             config.Delimiter = ",";
             config.HasHeaderRecord = true;
-            config.WillThrowOnMissingField = true;
-            config.IsHeaderCaseSensitive = false;
-            config.TrimHeaders = false;
+            config.MissingFieldFound = (headerNames, index, context) =>
+            {
+                var errorMessage =
+                    $"Field with names ['{string.Join("', '", headerNames)}'] at index '{index}' was not found.";
+                log.Error(errorMessage);
+                throw new Exception(errorMessage);
+            };
 
             //Sets Debug Mode
             isDebug = debugMode; //bool.Parse(ConfigurationManager.AppSettings["DEBUGMODE"]);
 
             //Loads the investigation data (lookup)
-            investigations = GetFileData<Investigation, InvestigationMapping>(AppDomain.CurrentDomain.BaseDirectory + "Lookups\\Investigations.csv", config, out investColumnCount);
+            investigations = GetInvestigationData();
 
             //If not int, log error and throw invalid cast exception
             if (!int.TryParse(ConfigurationManager.AppSettings["COLUMNCOUNT"].ToString(), out defaultColumnCount))
@@ -83,7 +87,7 @@ namespace Adjudications
                 List<Adjudication> adjudicationList = new List<Adjudication>();
 
                 //Gets all the data
-                adjudicationList = GetFileData<Adjudication, AdjudicationMapping>(adjudicationFile, config, out fileColumnCount);
+                adjudicationList = GetFileData<Adjudication, AdjudicationMapping>(adjudicationFile, out fileColumnCount);
 
                 //Store total
                 totalProcessed = adjudicationList.Count;
@@ -288,6 +292,53 @@ namespace Adjudications
         }
 
         /// <summary>
+        ///     Retrieves investigation data from the investigation database table
+        /// </summary>
+        /// <returns>A <see cref="List{Investigation}"/> containing <see cref="Investigation"/> records.</returns>
+        private List<Investigation> GetInvestigationData()
+        {
+            var investigationList = new List<Investigation>();
+
+            try
+            {
+                var connString = ConfigurationManager.ConnectionStrings["GCIMS"].ToString();
+
+                using (var conn = new MySqlConnection(connString))
+                {
+                    conn.Open();
+                    using (var cmd = new MySqlCommand())
+                    {
+                        cmd.Connection = conn;
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.CommandText = "uspGetActiveInvestigationTypes";
+
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                var investigation = new Investigation
+                                {
+                                    InvestigationType = reader["investigation_type"].ToString(),
+                                    TypeAccess = reader["type_access"].ToString(),
+                                    isNAC = reader.GetBoolean("nac_value"),
+                                    isNACI = reader.GetBoolean("naci_value"),
+                                    isFavorable = reader.GetBoolean("favorable")
+                                };
+
+                                investigationList.Add(investigation);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Error($"Cannot retrieve investigation records from database - {ex.Message} - {ex.InnerException}");
+            }
+            return investigationList;
+        }
+
+        /// <summary>
         /// Loads the adjudication information
         /// </summary>
         /// <typeparam name="TClass"></typeparam>
@@ -296,24 +347,28 @@ namespace Adjudications
         /// <param name="config"></param>
         /// <param name="columnCount"></param>
         /// <returns></returns>
-        private List<TClass> GetFileData<TClass, TMap>(string filePath, CsvConfiguration config, out int columnCount)
+        private List<TClass> GetFileData<TClass, TMap>(string filePath, out int columnCount)
             where TClass : class
-            where TMap : CsvClassMap<TClass>
+            where TMap : ClassMap<TClass>
         {
+            List<TClass> allRecords;
+
             //Import csv into a POCO
             using (CsvParser csvParser = new CsvParser(new StreamReader(filePath), config))
             {
                 using (CsvReader csvReader = new CsvReader(csvParser))
                 {
                     csvReader.Configuration.RegisterClassMap<TMap>();
+                    csvReader.Read();
+                    csvReader.ReadHeader();
+                    csvReader.Context.LeaveOpen = true;
+                    columnCount = csvReader.Context.HeaderRecord.Length;
 
-                    List<TClass> allRecords = csvReader.GetRecords<TClass>().ToList();
-
-                    columnCount = csvReader.FieldHeaders.Count();
-
-                    return allRecords;
+                    allRecords = csvReader.GetRecords<TClass>().ToList();
                 }
             }
+
+            return allRecords;
         }
 
         /// <summary>
