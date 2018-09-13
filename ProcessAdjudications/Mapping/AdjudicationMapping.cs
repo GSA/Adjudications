@@ -3,7 +3,7 @@ using CsvHelper.Configuration;
 
 namespace Adjudications.Mapping
 {
-    sealed class AdjudicationMapping : CsvClassMap<Adjudication>
+    sealed class AdjudicationMapping : ClassMap<Adjudication>
     {
         /// <summary>
         /// Used to map the adjudication file to the object
@@ -53,7 +53,7 @@ namespace Adjudications.Mapping
         }
     }
 
-    sealed class SummaryMapping : CsvClassMap<AdjudicationData>
+    sealed class SummaryMapping : ClassMap<AdjudicationData>
     {
         /// <summary>
         /// Used to map the results to the summary object
@@ -75,7 +75,7 @@ namespace Adjudications.Mapping
         }
     }
 
-    sealed class InvestigationMapping : CsvClassMap<Investigation>
+    sealed class InvestigationMapping : ClassMap<Investigation>
     {
         /// <summary>
         /// Used to map investigation data to the investigation object
