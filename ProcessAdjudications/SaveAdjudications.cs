@@ -4,6 +4,7 @@ using System;
 using System.ComponentModel;
 using System.Configuration;
 using System.Data;
+using Adjudications.Utilities;
 
 namespace Adjudications
 {
@@ -90,7 +91,11 @@ namespace Adjudications
                         cmd.ExecuteNonQuery();
 
                         //Return tuple of id,adjudication status, sendEmail, and pers status
-                        return new Tuple<int, string, bool, string>((int)cmd.Parameters["id"].Value, (string)cmd.Parameters["adjudicationStatus"].Value, Convert.ToBoolean(cmd.Parameters["sendEMail"].Value), (string)cmd.Parameters["persStatus"].Value);
+                        return new Tuple<int, string, bool, string>(
+                            (int)cmd.Parameters["id"].Value, 
+                            cmd.Parameters["adjudicationStatus"].GetStringValueOrEmpty(), 
+                            Convert.ToBoolean(cmd.Parameters["sendEMail"].Value), 
+                            cmd.Parameters["persStatus"].GetStringValueOrEmpty());
                     }
                 }
             }
