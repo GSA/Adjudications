@@ -112,6 +112,7 @@
     <Compile Include="SaveAdjudications.cs" />
     <Compile Include="AdjudicationEMails.cs" />
     <Compile Include="Utilities\EMail.cs" />
+    <Compile Include="Utilities\Extensions.cs" />
     <Compile Include="Utilities\Utilities.cs" />
   </ItemGroup>
   <ItemGroup>
