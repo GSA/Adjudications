@@ -86,8 +86,7 @@
     <Reference Include="MySql.Data">
       <HintPath>..\references\MySql.Data.dll</HintPath>
     </Reference>
-    <Reference Include="Suitability, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
+    <Reference Include="Suitability">
       <HintPath>..\references\Suitability.dll</HintPath>
     </Reference>
     <Reference Include="System" />
@@ -112,6 +111,7 @@
     <Compile Include="SaveAdjudications.cs" />
     <Compile Include="AdjudicationEMails.cs" />
     <Compile Include="Utilities\EMail.cs" />
+    <Compile Include="Utilities\Extensions.cs" />
     <Compile Include="Utilities\Utilities.cs" />
   </ItemGroup>
   <ItemGroup>
