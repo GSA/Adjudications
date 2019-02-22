@@ -132,5 +132,6 @@ namespace Adjudications.Mapping
         public const string RESCINDED = "Rescinded";
         public const string NOACTION = "No Action";
         public const string PORT_OF_ENTRY = "< 3 Year Error";
+        public const string Discontinued_Status = "Processed";
     }
 }
