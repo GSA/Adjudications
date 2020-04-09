@@ -610,6 +610,8 @@ namespace Adjudications
                     investigationType = "Tier 1";
                     break;
                 case "tier 2":
+                    investigationType = "Tier 2";
+                    break;
                 case "tier 2s":
                     investigationType = "Tier 2S";
                     break;
