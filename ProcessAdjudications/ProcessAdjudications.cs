@@ -610,6 +610,8 @@ namespace Adjudications
                     investigationType = "Tier 1";
                     break;
                 case "tier 2":
+                    investigationType = "Tier 2";
+                    break;
                 case "tier 2s":
                     investigationType = "Tier 2S";
                     break;
@@ -810,7 +812,10 @@ namespace Adjudications
                                     (
                                         w.InterimAdjudication1.ToLower().Equals("cleared to enter on duty (eod)") ||
                                         w.InterimAdjudication2.ToLower().Equals("cleared to enter on duty (eod)") ||
-                                        w.InterimAdjudication3.ToLower().Equals("cleared to enter on duty (eod)")
+                                        w.InterimAdjudication3.ToLower().Equals("cleared to enter on duty (eod)") ||
+                                        w.InterimAdjudication1.ToLower().Equals("cleared to enter on duty (eod) - no fingerprints") ||
+                                        w.InterimAdjudication2.ToLower().Equals("cleared to enter on duty (eod) - no fingerprints") ||
+                                        w.InterimAdjudication3.ToLower().Equals("cleared to enter on duty (eod) - no fingerprints")
                                     ) &&
                                     (
                                         !string.IsNullOrEmpty(w.InterimAdjudicationDate1.ToString()) ||
