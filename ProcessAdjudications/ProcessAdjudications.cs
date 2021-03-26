@@ -3,6 +3,7 @@ using Adjudications.Models;
 using CsvHelper;
 using CsvHelper.Configuration;
 using MySql.Data.MySqlClient;
+using Suitability;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -25,6 +26,7 @@ namespace Adjudications
         private static bool isDebug;
         private static List<AdjudicationData> processed;
         private static Utilities.Utilities u = new Utilities.Utilities();
+        private static Suitability.SendNotification sendNotification;
 
         //Reference to logger
         private readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
@@ -1086,8 +1088,24 @@ namespace Adjudications
                                     )
                                 .ToList();
 
-            //process unfavorable finals
-            ProcessAdjudicationList(unfavorableFinal);
+            foreach (AdjudicationData adjudicationData in unfavorableFinal)
+            {
+                if (adjudicationData.Status.ToLower().Equals("active"))
+                {
+                    sendNotification = new Suitability.SendNotification(
+                      ConfigurationManager.AppSettings["DEFAULTEMAIL"],
+                       0,
+                      ConfigurationManager.ConnectionStrings["GCIMS"].ToString(),
+                      ConfigurationManager.AppSettings["SMTPSERVER"],
+                      ConfigurationManager.AppSettings["ONBOARDINGLOCATION"], 
+                       0
+                     );
+
+                    sendNotification.SendAdjudicationNotification();
+                }
+            }
+                //process unfavorable finals
+                ProcessAdjudicationList(unfavorableFinal);
 
             //log count
             log.Info("Unfavorable Final: " + unfavorableFinal.Count);
@@ -1175,7 +1193,7 @@ namespace Adjudications
                                     (
                                         w.InterimAdjudication1.ToLower().Equals("not cleared to enter on duty (eod)") ||
                                         w.InterimAdjudication2.ToLower().Equals("not cleared to enter on duty (eod)") ||
-                                        w.InterimAdjudication3.ToLower().Equals("not cleared to enter on duty (eod)")
+                                        w.InterimAdjudication3.ToLower().Equals("not cleared to enter on duty (eod)") 
                                     ) &&
                                     (
                                         !string.IsNullOrEmpty(w.InterimAdjudicationDate1.ToString()) ||
