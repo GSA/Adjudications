@@ -1096,7 +1096,7 @@ namespace Adjudications
                                                 DateOfEntry = s.DateOfEntry,
                                                 LessThan3YearsUS = s.LessThan3YearsInUS,
                                                 InvestigationType = "Unfavorable",
-                                                InvestigationDate = s.FinalAdjudicationDate,
+                                                InvestigationDate = s.FinalAdjudicationDate
                                             }
                                     )
                                 .ToList();
