@@ -203,6 +203,51 @@ namespace Adjudications
             return updatedIndeterminable;
         }
 
+        private Tuple<int,string> GetIdAndStatus(string name, string ssn)
+        {
+            var connString = ConfigurationManager.ConnectionStrings["GCIMS"].ToString();
+            Tuple<int, string> discontinue = new Tuple<int, string>(0, "");
+
+            try
+            {
+                using (var conn = new MySqlConnection(connString))
+                {
+                    conn.Open();
+
+                    using (var cmd = new MySqlCommand())
+                    {
+                        cmd.Connection = conn;
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.CommandText = "spGetStatusFor_Indeterminable";
+                        cmd.Parameters.Clear();
+
+                        //Set  new sql parameters
+                        var adjudicationParameters = new MySqlParameter[]
+                        {
+                            new MySqlParameter { ParameterName = "lastname", Value = name, MySqlDbType = MySqlDbType.VarChar, Size = 60, Direction = ParameterDirection.Input },
+                            new MySqlParameter { ParameterName = "ssn", Value = u.HashSSN(ssn), MySqlDbType = MySqlDbType.VarBinary, Size = 32, Direction = ParameterDirection.Input },
+                            new MySqlParameter { ParameterName = "id", MySqlDbType = MySqlDbType.Int32, Size = 20, Direction = ParameterDirection.Output },
+                            new MySqlParameter { ParameterName = "persStatus", MySqlDbType = MySqlDbType.VarChar, Size=12, Direction = ParameterDirection.Output }
+                        };
+
+                        cmd.Parameters.AddRange(adjudicationParameters);
+                        cmd.ExecuteNonQuery();
+
+                        var returnedId = 0;
+                        int.TryParse(cmd.Parameters["id"].Value.ToString(), out returnedId);
+                        discontinue = new Tuple<int, string>(returnedId, cmd.Parameters["persStatus"].Value.ToString());
+                    }
+
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Error("Save: " + ex.Message + " - " + ex.InnerException);
+            }
+
+            return discontinue ;
+        }
+
         /// <summary>
         ///
         /// </summary>
@@ -712,13 +757,20 @@ namespace Adjudications
                                                     HashedSSN = u.HashSSN(s.SSN),
                                                     InvestigationType = "No Action",
                                                     InvestigationDate = s.FinalAdjudicationDate,
-                                                    AdjudicationStatus = ProcessedStatusConstants.NOACTION
+                                                    AdjudicationStatus = ProcessedStatusConstants.Discontinued_Status,
                                                 }
                                        )
                                     .ToList();
 
             //log number found
             log.Info("Case Discontinued: " + caseDiscontinued.Count);
+
+            foreach(var item in caseDiscontinued)
+            {
+                Tuple<int,string> discontinue = GetIdAndStatus(item.LastName,item.SSN);
+                item.ID = discontinue.Item1;
+                item.Status = discontinue.Item2;
+            }
 
             //add to processed
             processed.AddRange(caseDiscontinued);
