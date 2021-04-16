@@ -494,8 +494,21 @@ namespace Adjudications
                 //Update processed
                 processed.Add(adjudicationData);
 
-                //if email requested & not debug & not duplicate
-                if (adjudicationData.EMailRequested && !isDebug && adjudicationData.AdjudicationStatus != "Duplicate")
+                //if Unfavorable final and active, check whether or not to send cardholder e-mail
+                    if (adjudicationData.Status.ToLower().Equals("active")&& adjudicationData.InvestigationType.ToLower().Equals("unfavorable"))
+                    {
+                        sendNotification = new Suitability.SendNotification(
+                          ConfigurationManager.AppSettings["DEFAULTEMAIL"],
+                           adjudicationData.ID,
+                          ConfigurationManager.ConnectionStrings["GCIMS"].ToString(),
+                          ConfigurationManager.AppSettings["SMTPSERVER"],
+                          ConfigurationManager.AppSettings["ONBOARDINGLOCATION"]
+                         );
+
+                        sendNotification.SendInactiveReminder();
+                    }
+                    //if email requested & not debug & not duplicate
+                    if (adjudicationData.EMailRequested && !isDebug && adjudicationData.AdjudicationStatus != "Duplicate")
                 {
                     //need a try catch here
                     //Send adjudication notice
@@ -1083,27 +1096,11 @@ namespace Adjudications
                                                 DateOfEntry = s.DateOfEntry,
                                                 LessThan3YearsUS = s.LessThan3YearsInUS,
                                                 InvestigationType = "Unfavorable",
-                                                InvestigationDate = s.FinalAdjudicationDate
+                                                InvestigationDate = s.FinalAdjudicationDate,
                                             }
                                     )
                                 .ToList();
 
-            foreach (AdjudicationData adjudicationData in unfavorableFinal)
-            {
-                if (adjudicationData.Status.ToLower().Equals("active"))
-                {
-                    sendNotification = new Suitability.SendNotification(
-                      ConfigurationManager.AppSettings["DEFAULTEMAIL"],
-                       0,
-                      ConfigurationManager.ConnectionStrings["GCIMS"].ToString(),
-                      ConfigurationManager.AppSettings["SMTPSERVER"],
-                      ConfigurationManager.AppSettings["ONBOARDINGLOCATION"], 
-                       0
-                     );
-
-                    sendNotification.SendAdjudicationNotification();
-                }
-            }
                 //process unfavorable finals
                 ProcessAdjudicationList(unfavorableFinal);
 

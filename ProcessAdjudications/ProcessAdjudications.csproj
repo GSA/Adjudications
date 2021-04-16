@@ -86,8 +86,9 @@
     <Reference Include="MySql.Data">
       <HintPath>..\references\MySql.Data.dll</HintPath>
     </Reference>
-    <Reference Include="Suitability">
-      <HintPath>..\..\CIW\references\Suitability.dll</HintPath>
+    <Reference Include="Suitability, Version=2.0.7528.28643, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\references\Suitability.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.configuration" />
