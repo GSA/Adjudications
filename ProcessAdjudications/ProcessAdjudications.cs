@@ -3,6 +3,7 @@ using Adjudications.Models;
 using CsvHelper;
 using CsvHelper.Configuration;
 using MySql.Data.MySqlClient;
+using Suitability;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -25,6 +26,7 @@ namespace Adjudications
         private static bool isDebug;
         private static List<AdjudicationData> processed;
         private static Utilities.Utilities u = new Utilities.Utilities();
+        private static Suitability.SendNotification sendNotification;
 
         //Reference to logger
         private readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
@@ -492,8 +494,21 @@ namespace Adjudications
                 //Update processed
                 processed.Add(adjudicationData);
 
-                //if email requested & not debug & not duplicate
-                if (adjudicationData.EMailRequested && !isDebug && adjudicationData.AdjudicationStatus != "Duplicate")
+                //if Unfavorable final and active, check whether or not to send cardholder e-mail
+                    if (adjudicationData.Status.ToLower().Equals("active")&& adjudicationData.InvestigationType.ToLower().Equals("unfavorable"))
+                    {
+                        sendNotification = new Suitability.SendNotification(
+                          ConfigurationManager.AppSettings["DEFAULTEMAIL"],
+                           adjudicationData.ID,
+                          ConfigurationManager.ConnectionStrings["GCIMS"].ToString(),
+                          ConfigurationManager.AppSettings["SMTPSERVER"],
+                          ConfigurationManager.AppSettings["ONBOARDINGLOCATION"]
+                         );
+
+                        sendNotification.SendInactiveReminder();
+                    }
+                    //if email requested & not debug & not duplicate
+                    if (adjudicationData.EMailRequested && !isDebug && adjudicationData.AdjudicationStatus != "Duplicate")
                 {
                     //need a try catch here
                     //Send adjudication notice
@@ -1086,8 +1101,8 @@ namespace Adjudications
                                     )
                                 .ToList();
 
-            //process unfavorable finals
-            ProcessAdjudicationList(unfavorableFinal);
+                //process unfavorable finals
+                ProcessAdjudicationList(unfavorableFinal);
 
             //log count
             log.Info("Unfavorable Final: " + unfavorableFinal.Count);
@@ -1175,7 +1190,10 @@ namespace Adjudications
                                     (
                                         w.InterimAdjudication1.ToLower().Equals("not cleared to enter on duty (eod)") ||
                                         w.InterimAdjudication2.ToLower().Equals("not cleared to enter on duty (eod)") ||
-                                        w.InterimAdjudication3.ToLower().Equals("not cleared to enter on duty (eod)")
+                                        w.InterimAdjudication3.ToLower().Equals("not cleared to enter on duty (eod)") ||
+                                        w.InterimAdjudication1.ToLower().Equals("not cleared to enter on duty (eod) - no fingerprints") ||
+                                        w.InterimAdjudication2.ToLower().Equals("not cleared to enter on duty (eod) - no fingerprints") ||
+                                        w.InterimAdjudication3.ToLower().Equals("not cleared to enter on duty (eod) - no fingerprints")
                                     ) &&
                                     (
                                         !string.IsNullOrEmpty(w.InterimAdjudicationDate1.ToString()) ||
