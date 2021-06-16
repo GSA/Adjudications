@@ -350,7 +350,7 @@ namespace Adjudications
             where TMap : CsvClassMap<TClass>
         {
             //Import csv into a POCO
-            using (CsvParser csvParser = new CsvParser(new StreamReader(filePath), config))
+            using (CsvParser csvParser = new CsvParser(new StreamReader(filePath, System.Text.Encoding.Default), config))
             {
                 using (CsvReader csvReader = new CsvReader(csvParser))
                 {
