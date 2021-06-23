@@ -350,7 +350,7 @@ namespace Adjudications
             where TMap : CsvClassMap<TClass>
         {
             //Import csv into a POCO
-            using (CsvParser csvParser = new CsvParser(new StreamReader(filePath), config))
+            using (CsvParser csvParser = new CsvParser(new StreamReader(filePath, System.Text.Encoding.Default), config))
             {
                 using (CsvReader csvReader = new CsvReader(csvParser))
                 {
@@ -1193,7 +1193,10 @@ namespace Adjudications
                                         w.InterimAdjudication3.ToLower().Equals("not cleared to enter on duty (eod)") ||
                                         w.InterimAdjudication1.ToLower().Equals("not cleared to enter on duty (eod) - no fingerprints") ||
                                         w.InterimAdjudication2.ToLower().Equals("not cleared to enter on duty (eod) - no fingerprints") ||
-                                        w.InterimAdjudication3.ToLower().Equals("not cleared to enter on duty (eod) - no fingerprints")
+                                        w.InterimAdjudication3.ToLower().Equals("not cleared to enter on duty (eod) - no fingerprints") ||
+                                        w.InterimAdjudication1.ToLower().Equals("not cleared to enter on duty (eod) – no fingerprints") ||
+                                        w.InterimAdjudication2.ToLower().Equals("not cleared to enter on duty (eod) – no fingerprints") ||
+                                        w.InterimAdjudication3.ToLower().Equals("not cleared to enter on duty (eod) – no fingerprints")
                                     ) &&
                                     (
                                         !string.IsNullOrEmpty(w.InterimAdjudicationDate1.ToString()) ||
